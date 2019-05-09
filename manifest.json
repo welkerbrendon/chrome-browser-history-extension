@@ -1,0 +1,12 @@
+{
+    "manifest_version": 2,
+    "name": "History Obtainer",
+    "description": "Obtains the browser history for .",
+    "version": "1",
+    "author": "Brendon Welker",
+    "permissions": [ "history", "tabs" ],
+    "background": {
+        "scripts": ["background.js"],
+        "persistent": false
+    }
+}
