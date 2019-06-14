@@ -4,7 +4,13 @@
     "description": "Obtains the browser history for .",
     "version": "1",
     "author": "Brendon Welker",
-    "permissions": [ "history", "tabs" ],
+    "permissions": [ 
+        "history", 
+        "tabs",
+        "identity",
+        "storage",
+        "http://localhost:8000/"
+    ],
     "background": {
         "scripts": ["background.js"],
         "persistent": false
