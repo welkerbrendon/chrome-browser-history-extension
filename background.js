@@ -1,29 +1,3 @@
-// chrome.storage.local.get(['token'], function (result) {
-//     if (!result.token) {
-//         chrome.identity.launchWebAuthFlow(
-//             {'url': 'http://localhost:8000/accounts/extension-authentication/', 'interactive': true},
-//             function(redirect_url) { 
-//                 const token = redirect_url.split('=')[1]
-//                 chrome.storage.local.set({'token': token}, function() {
-//                     console.log(`Token is set to: ${token} and saved to chrome storage.`);
-//                 }); 
-//             });
-//     }
-//     else {
-//         console.log(`Token already in storage: ${result.token}`);
-//     }
-// });
-
-chrome.identity.launchWebAuthFlow(
-    {'url': 'http://localhost:8000/accounts/extension-authentication/', 'interactive': true},
-    function(redirect_url) { 
-        const token = redirect_url.split('=')[1]
-        chrome.storage.local.set({'token': token}, function() {
-            console.log(`Token is set to: ${token} and saved to chrome storage.`);
-        }); 
-    });
-
-
 var tab = null;
 var startTime;
 
@@ -39,14 +13,16 @@ function handleNewTab(newTab) {
         var endTime = new Date().getTime();
         console.log(`visted ${tab.canonicalizedUrl} for ${endTime - startTime} milliseconds.`);
         console.log(`visted these parts of the website: ${tab.urlList.toString()}`);
-        chrome.storage.local.get(['token'], function(result) {
+        getAuthToken(function(token) {
             console.log(`Will send following informatoin to website: 
                     site url: ${tab.canonicalizedUrl}, start time: ${sendableStartTime}, 
-                    extensions list: ${tab.urlList.toString()}, and user token: ${result.token}`);
+                    extensions list: ${tab.urlList.toString()}, and user token: ${token}`);
             data = {
-                'token': result.token,
+                'token': token,
                 'url': tab.canonicalizedUrl,
-                'start_time': sendableStartTime
+                'start_time': sendableStartTime,
+                'end_time': new Date().toJSON().substring(10,19).replace('T',''),
+                'extensions': tab.urlList
             };
             console.log(`Data: ${JSON.stringify(data)}`);
             fetch("http://localhost:8000/main/activities/site/", {
@@ -56,14 +32,14 @@ function handleNewTab(newTab) {
                     'Content-Type': 'application/json'
                 }
             })
-            .then(function(res){
+            .then(function (res) {
                 console.log(`Status: ${res.statusText}`);
 
                 tab = newTab;
                 tab.urlList = [tab.url];
                 startTime = endTime;
             })
-            .catch(function(error) {
+            .catch(function (error) {
                 console.log(`Error: ${error}`)
 
                 tab = newTab;
@@ -102,6 +78,62 @@ chrome.tabs.onActivated.addListener(function (activeInfo) {
         handleNewTab(newTab);
     });
 });
+
+function getAuthToken(callback) {
+    chrome.storage.local.get(['token'], function (result) {
+        if (!result.token) {
+            chrome.identity.launchWebAuthFlow(
+                {'url': 'http://localhost:8000/accounts/extension-authentication/', 'interactive': true},
+                function(redirect_url) { 
+                    const token = redirect_url.split('=')[1]
+                    chrome.storage.local.set({'token': token}, function() {
+                        console.log(`Token is set to: ${token} and saved to chrome storage.`);
+                        callback(token);
+                    }); 
+                });
+        }
+        else {
+            data = {"token": result.token};
+            fetch("http://localhost:8000/accounts/token-authentication/", {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers:{
+                    'Content-Type': 'application/json'
+                }
+            }).then(res => res.json())
+            .then(function (response) {
+                console.log(JSON.stringify(response));
+                if (!response.valid) {
+                    chrome.identity.launchWebAuthFlow(
+                        {'url': 'http://localhost:8000/accounts/extension-authentication/', 'interactive': true},
+                        function(redirect_url) { 
+                            const token = redirect_url.split('=')[1]
+                            chrome.storage.local.set({'token': token}, function() {
+                                console.log(`Token is set to: ${token} and saved to chrome storage.`);
+                                callback(token);
+                            }); 
+                        });
+                }
+                else {
+                    console.log(`Token already saved and valid. Token=${result.token}`);
+                    callback(result.token);
+                }
+            })
+            .catch(function (error) {
+                console.log(error);
+                chrome.identity.launchWebAuthFlow(
+                    {'url': 'http://localhost:8000/accounts/extension-authentication/', 'interactive': true},
+                    function(redirect_url) { 
+                        const token = redirect_url.split('=')[1]
+                        chrome.storage.local.set({'token': token}, function() {
+                            console.log(`Token is set to: ${token} and saved to chrome storage.`);
+                            callback(token);
+                        }); 
+                    });
+            })
+        }
+    });
+}
 
 /*chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, newTab) {
     handleNewTab(newTab);
