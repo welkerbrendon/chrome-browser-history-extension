@@ -6,22 +6,23 @@ function handleNewTab(newTab) {
     if (tab == null) {
         tab = newTab;
         tab.urlList = [tab.url];
-        sendableStartTime = new Date().toJSON().substring(10,19).replace('T','');
-        startTime = new Date().getTime();
+        date = new Date();
+        sendableStartTime = date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
     }
     else if (tab.canonicalizedUrl != newTab.canonicalizedUrl) {
         var endTime = new Date().getTime();
         console.log(`visted ${tab.canonicalizedUrl} for ${endTime - startTime} milliseconds.`);
         console.log(`visted these parts of the website: ${tab.urlList.toString()}`);
-        getAuthToken(function(token) {
+        getAuthToken(function(authToken) {
             console.log(`Will send following informatoin to website: 
                     site url: ${tab.canonicalizedUrl}, start time: ${sendableStartTime}, 
-                    extensions list: ${tab.urlList.toString()}, and user token: ${token}`);
+                    extensions list: ${tab.urlList.toString()}, and user token: ${authToken}`);
+            date = new Date()
             data = {
-                'token': token,
+                'token': authToken,
                 'url': tab.canonicalizedUrl,
                 'start_time': sendableStartTime,
-                'end_time': new Date().toJSON().substring(10,19).replace('T',''),
+                'end_time': date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds(),
                 'extensions': tab.urlList
             };
             console.log(`Data: ${JSON.stringify(data)}`);
@@ -85,10 +86,10 @@ function getAuthToken(callback) {
             chrome.identity.launchWebAuthFlow(
                 {'url': 'https://daily-habbit-tracker.herokuapp.com/accounts/extension-authentication/', 'interactive': true},
                 function(redirect_url) { 
-                    const token = redirect_url.split('=')[1]
-                    chrome.storage.local.set({'token': token}, function() {
-                        console.log(`Token is set to: ${token} and saved to chrome storage.`);
-                        callback(token);
+                    const receivedToken = redirect_url.split('=')[1]
+                    chrome.storage.local.set({'token': receivedToken}, function() {
+                        console.log(`Token is set to: ${receivedToken} and saved to chrome storage.`);
+                        callback(receivedToken);
                     }); 
                 });
         }
@@ -107,10 +108,10 @@ function getAuthToken(callback) {
                     chrome.identity.launchWebAuthFlow(
                         {'url': 'https://daily-habbit-tracker.herokuapp.com/accounts/extension-authentication/', 'interactive': true},
                         function(redirect_url) { 
-                            const token = redirect_url.split('=')[1]
-                            chrome.storage.local.set({'token': token}, function() {
-                                console.log(`Token is set to: ${token} and saved to chrome storage.`);
-                                callback(token);
+                            const newToken = redirect_url.split('=')[1]
+                            chrome.storage.local.set({'token': newToken}, function() {
+                                console.log(`Token is set to: ${newToken} and saved to chrome storage.`);
+                                callback(newToken);
                             }); 
                         });
                 }
@@ -124,10 +125,10 @@ function getAuthToken(callback) {
                 chrome.identity.launchWebAuthFlow(
                     {'url': 'https://daily-habbit-tracker.herokuapp.com/accounts/extension-authentication/', 'interactive': true},
                     function(redirect_url) { 
-                        const token = redirect_url.split('=')[1]
-                        chrome.storage.local.set({'token': token}, function() {
-                            console.log(`Token is set to: ${token} and saved to chrome storage.`);
-                            callback(token);
+                        const newToken = redirect_url.split('=')[1]
+                        chrome.storage.local.set({'token': newToken}, function() {
+                            console.log(`Token is set to: ${newToken} and saved to chrome storage.`);
+                            callback(newToken);
                         }); 
                     });
             })
