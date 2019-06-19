@@ -25,7 +25,7 @@ function handleNewTab(newTab) {
                 'extensions': tab.urlList
             };
             console.log(`Data: ${JSON.stringify(data)}`);
-            fetch("http://localhost:8000/main/activities/site/", {
+            fetch("https://daily-habbit-tracker.herokuapp.com/main/activities/site/", {
                 method: 'POST',
                 body: JSON.stringify(data),
                 headers:{
@@ -83,7 +83,7 @@ function getAuthToken(callback) {
     chrome.storage.local.get(['token'], function (result) {
         if (!result.token) {
             chrome.identity.launchWebAuthFlow(
-                {'url': 'http://localhost:8000/accounts/extension-authentication/', 'interactive': true},
+                {'url': 'https://daily-habbit-tracker.herokuapp.com/accounts/extension-authentication/', 'interactive': true},
                 function(redirect_url) { 
                     const token = redirect_url.split('=')[1]
                     chrome.storage.local.set({'token': token}, function() {
@@ -94,7 +94,7 @@ function getAuthToken(callback) {
         }
         else {
             data = {"token": result.token};
-            fetch("http://localhost:8000/accounts/token-authentication/", {
+            fetch("https://daily-habbit-tracker.herokuapp.com/accounts/token-authentication/", {
                 method: 'POST',
                 body: JSON.stringify(data),
                 headers:{
@@ -105,7 +105,7 @@ function getAuthToken(callback) {
                 console.log(JSON.stringify(response));
                 if (!response.valid) {
                     chrome.identity.launchWebAuthFlow(
-                        {'url': 'http://localhost:8000/accounts/extension-authentication/', 'interactive': true},
+                        {'url': 'https://daily-habbit-tracker.herokuapp.com/accounts/extension-authentication/', 'interactive': true},
                         function(redirect_url) { 
                             const token = redirect_url.split('=')[1]
                             chrome.storage.local.set({'token': token}, function() {
@@ -122,7 +122,7 @@ function getAuthToken(callback) {
             .catch(function (error) {
                 console.log(error);
                 chrome.identity.launchWebAuthFlow(
-                    {'url': 'http://localhost:8000/accounts/extension-authentication/', 'interactive': true},
+                    {'url': 'https://daily-habbit-tracker.herokuapp.com/accounts/extension-authentication/', 'interactive': true},
                     function(redirect_url) { 
                         const token = redirect_url.split('=')[1]
                         chrome.storage.local.set({'token': token}, function() {
