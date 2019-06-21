@@ -23,7 +23,8 @@ function handleNewTab(newTab) {
                 'url': tab.canonicalizedUrl,
                 'start_time': sendableStartTime,
                 'end_time': date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds(),
-                'extensions': tab.urlList
+                'extensions': tab.urlList,
+                'day': date.getDate() + "-" + date.getMonth() + "-" + date.getYear()
             };
             console.log(`Data: ${JSON.stringify(data)}`);
             fetch("https://daily-habbit-tracker.herokuapp.com/main/activities/site/", {
