@@ -1,32 +1,29 @@
 var tab = null;
 var startTime;
+var date;
 
 function handleNewTab(newTab) {
     canonicalizeUrl(newTab);
     if (tab == null) {
-        tab = newTab;
-        tab.urlList = [tab.url];
-        date = new Date();
-        sendableStartTime = date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
+        setData(newTab);
     }
-    else if (tab.canonicalizedUrl != newTab.canonicalizedUrl) {
-        var endTime = new Date().getTime();
-        console.log(`visted ${tab.canonicalizedUrl} for ${endTime - startTime} milliseconds.`);
-        console.log(`visted these parts of the website: ${tab.urlList.toString()}`);
+    else if (tab.url.includes("chrome://") && !newTab.url.includes("chrome://")) {
+        setData(newTab);
+    }
+    else if (tab.canonicalizedUrl != newTab.canonicalizedUrl ) {
+        console.log(`visted ${tab.canonicalizedUrl}.`);
+        console.log(`visted these parts of the website: ${tab.extensions.toString()}`);
         getAuthToken(function(authToken) {
-            console.log(`Will send following informatoin to website: 
-                    site url: ${tab.canonicalizedUrl}, start time: ${sendableStartTime}, 
-                    extensions list: ${tab.urlList.toString()}, and user token: ${authToken}`);
-            date = new Date()
+            var tempDate = new Date();
             data = {
                 'token': authToken,
                 'url': tab.canonicalizedUrl,
-                'start_time': sendableStartTime,
-                'end_time': date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds(),
-                'extensions': tab.urlList,
-                'day': date.getDate() + "-" + date.getMonth() + "-" + date.getYear()
+                'start_time': startTime,
+                'end_time': tempDate.getHours() + ":" + tempDate.getMinutes() + ":" + tempDate.getSeconds(),
+                'extensions': tab.extensions,
+                'day': date
             };
-            console.log(`Data: ${JSON.stringify(data)}`);
+            console.log(`Will send follwing data to db: ${JSON.stringify(data)}`);
             fetch("https://daily-habbit-tracker.herokuapp.com/main/activities/site/", {
                 method: 'POST',
                 body: JSON.stringify(data),
@@ -36,25 +33,25 @@ function handleNewTab(newTab) {
             })
             .then(function (res) {
                 console.log(`Status: ${res.statusText}`);
-
-                tab = newTab;
-                tab.urlList = [tab.url];
-                startTime = endTime;
+                setData(newTab);
             })
             .catch(function (error) {
                 console.log(`Error: ${error}`)
-
-                tab = newTab;
-                tab.urlList = [tab.url];
-                startTime = endTime;
+                setData(newTab);
             });
         });
     }
     else if (tab.url != newTab.url) {
-        if (!tab.urlList.includes(newTab.url)) {
-            tab.urlList.push(tab.url);
-        }
         tab.url = newTab.url;
+        var splitUrl = tab.url.split(".");
+        if (splitUrl.length >= 3) {
+            var urlEnd = splitUrl[splitUrl.length - 1];
+            var index = urlEnd.indexOf("/") + 1;
+            var extension = index > 0 ? urlEnd.slice(index, urlEnd.length) : "";
+            if (!tab.extensions.includes(extension) && extension.length > 0) {
+                tab.extensions.push(extension);
+            }
+        }
     }
 }
 
@@ -135,6 +132,20 @@ function getAuthToken(callback) {
             })
         }
     });
+}
+
+function setData(newTab) {
+    tab = newTab;
+    var splitUrl = tab.url.split(".");
+    if (splitUrl.length >= 3) {
+        var urlEnd = splitUrl[splitUrl.length - 1];
+        var index = urlEnd.indexOf("/") + 1;
+        var extension = index > 0 ? urlEnd.slice(index, urlEnd.length) : "";
+        tab.extensions = extension == "" ? [] : [extension];
+    }
+    var tempDate = new Date();
+    startTime = tempDate.getHours() + ":" + tempDate.getMinutes() + ":" + tempDate.getSeconds();
+    date = tempDate.getFullYear() + "-" + (tempDate.getMonth() + 1) + "-" + tempDate.getDate(); 
 }
 
 /*chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, newTab) {
