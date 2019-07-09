@@ -107,7 +107,7 @@ function getAuthToken(callback) {
     chrome.storage.local.get(['token'], function (result) {
         if (!result.token) {
             chrome.identity.launchWebAuthFlow(
-                {'url': 'https://daily-habbit-tracker.herokuapp.com/accounts/extension-authentication?id=' + chrome.runtime.id, 'interactive': true},
+                {'url': 'https://daily-habbit-tracker.herokuapp.com/accounts/extension-authentication/?id=' + chrome.runtime.id, 'interactive': true},
                 function(redirect_url) { 
                     const receivedToken = redirect_url.split('=')[1]
                     chrome.storage.local.set({'token': receivedToken}, function() {
@@ -129,7 +129,7 @@ function getAuthToken(callback) {
                 console.log(JSON.stringify(response));
                 if (!response.valid) {
                     chrome.identity.launchWebAuthFlow(
-                        {'url': 'https://daily-habbit-tracker.herokuapp.com/accounts/extension-authentication?id=' + chrome.runtime.id, 'interactive': true},
+                        {'url': 'https://daily-habbit-tracker.herokuapp.com/accounts/extension-authentication/?id=' + chrome.runtime.id, 'interactive': true},
                         function(redirect_url) { 
                             const newToken = redirect_url.split('=')[1]
                             chrome.storage.local.set({'token': newToken}, function() {
@@ -146,7 +146,7 @@ function getAuthToken(callback) {
             .catch(function (error) {
                 console.log(error);
                 chrome.identity.launchWebAuthFlow(
-                    {'url': 'https://daily-habbit-tracker.herokuapp.com/accounts/extension-authentication?id=' + chrome.runtime.id, 'interactive': true},
+                    {'url': 'https://daily-habbit-tracker.herokuapp.com/accounts/extension-authentication/?id=' + chrome.runtime.id, 'interactive': true},
                     function(redirect_url) { 
                         const newToken = redirect_url.split('=')[1]
                         chrome.storage.local.set({'token': newToken}, function() {
