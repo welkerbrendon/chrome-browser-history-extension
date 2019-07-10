@@ -176,7 +176,7 @@ function setData(newTab) {
 }
 
 function findNewTab(i) {
-    chrome.windows.query({active: true}, function (results) {
+    chrome.tabs.query({active: true}, function (results) {
         chrome.windows.get(results[i].windowId, function (window) {
             if (window.state != "minimized") {
                 setData(results[i]);
