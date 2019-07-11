@@ -35,7 +35,7 @@ chrome.idle.onStateChanged.addListener(function (state) {
 setInterval(checkCurrentTab, 10 * 60 * 1000);
 
 function handleNewTab(newTab) {
-    if (newTab != null) {
+    if (newTab != null && newTab.url) {
         if (tab == null) {
             setData(newTab);
         }
@@ -102,8 +102,10 @@ function submitData(newTab) {
 }
 
 function canonicalizeUrl(newTab) {
-    var indexToStopAt = newTab.url.indexOf("/", 10);
-    newTab.canonicalizedUrl = indexToStopAt == -1 ? newTab.url : newTab.url.substring(0, indexToStopAt + 1);
+    if (newTab != null && newTab.url) {
+        var indexToStopAt = newTab.url.indexOf("/", 10);
+        newTab.canonicalizedUrl = indexToStopAt == -1 ? newTab.url : newTab.url.substring(0, indexToStopAt + 1);
+    }
 }
 
 function getAuthToken(callback) {
