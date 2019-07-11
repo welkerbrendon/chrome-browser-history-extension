@@ -40,13 +40,15 @@ function handleNewTab(newTab) {
         if (tab == null) {
             setData(newTab);
         }
-        else if (tab.url.includes("chrome://") && !newTab.url.includes("chrome://")) {
-            setData(newTab);
-        }
         else if (tab.canonicalizedUrl != newTab.canonicalizedUrl ) {
             console.log(`visted ${tab.canonicalizedUrl}.`);
             console.log(`visted these parts of the website: ${tab.extensions}`);
-            submitData(newTab);
+            if (tab.canonicalizeUrl.includes("chrome:")){
+                setData(newTab);
+            }
+            else {
+                submitData(newTab);
+            }
         }
         else if (tab.url != newTab.url) {
             tab.url = newTab.url;
