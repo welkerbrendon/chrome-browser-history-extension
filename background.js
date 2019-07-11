@@ -36,14 +36,13 @@ setInterval(checkCurrentTab, 10 * 60 * 1000);
 
 function handleNewTab(newTab) {
     if (newTab != null) {
-        canonicalizeUrl(newTab);
         if (tab == null) {
             setData(newTab);
         }
-        else if (tab.canonicalizedUrl != newTab.canonicalizedUrl ) {
+        else if (!newTab.url.includes(tab.canonicalizedUrl)) {
             console.log(`visted ${tab.canonicalizedUrl}.`);
             console.log(`visted these parts of the website: ${tab.extensions}`);
-            if (tab.canonicalizeUrl.includes("chrome:")){
+            if (tab.canonicalizedUrl.includes("chrome:")){
                 setData(newTab);
             }
             else {
@@ -57,8 +56,10 @@ function handleNewTab(newTab) {
                 var urlEnd = splitUrl[splitUrl.length - 1];
                 var index = urlEnd.indexOf("/") + 1;
                 var extension = index > 0 ? urlEnd.slice(index, urlEnd.length) : "";
-                if (!tab.extensions.includes(extension) && extension.length > 0) {
-                    tab.extensions.push(extension);
+                if (tab.extensions) {
+                    if (!tab.extensions.includes(extension) && extension.length > 0) {
+                        tab.extensions.push(extension);
+                    }
                 }
             }
         }
@@ -163,6 +164,7 @@ function getAuthToken(callback) {
 
 function setData(newTab) {
     tab = newTab;
+    canonicalizeUrl(tab);
     if (tab != null) {
         var splitUrl = tab.url.split(".");
         if (splitUrl.length >= 3) {
