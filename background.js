@@ -20,15 +20,27 @@ chrome.tabs.onActivated.addListener(function (activeInfo) {
     });
 });
 
+chrome.idle.setDetectionInterval(10 * 60);
+
 chrome.idle.onStateChanged.addListener(function (state) {
     if (state == "locked") {
         saveDataLocally();
     }
-    else if (tab == null && state == "active") {
-        chrome.tabs.query({active: true, currentWindow: true}, function (result) {
-            sendSavedData();
-            handleNewTab([result[0]]);
-        });
+    else if (state == "active") {
+        inactiveTime = null;
+        if (tab == null) {
+            chrome.tabs.query({active: true, currentWindow: true}, function (result) {
+                if (result.length > 0) {
+                    sendSavedData(result[0]);
+                }
+                else {
+                    sendSavedData(null);
+                }
+            });
+        }
+    }
+    else {
+        submitData(null);
     }
 });
 
@@ -66,15 +78,15 @@ function handleNewTab(newTab) {
     }
 }
 
-function submitData(newTab) {
-    if (tab != null) {
+function submitData(newTab, endTime = null, attempt = 1) {
+    if (tab != null && attempt < 3) {
         getAuthToken(function(authToken) {
             var tempDate = new Date();
             data = {
                 'token': authToken,
                 'url': tab.canonicalizedUrl,
                 'start_time': startTime,
-                'end_time': tempDate.getHours() + ":" + tempDate.getMinutes() + ":" + tempDate.getSeconds(),
+                'end_time': endTime ? endTime : tempDate.getHours() + ":" + tempDate.getMinutes() + ":" + tempDate.getSeconds(),
                 'extensions': tab.extensions,
                 'day': date
             };
@@ -88,7 +100,12 @@ function submitData(newTab) {
             })
             .then(function (res) {
                 console.log(`Status: ${res.statusText}`);
-                setData(newTab);
+                if (res.statusText != "Created") {
+                    submitData(newTab, attempt + 1);
+                }
+                else {
+                    setData(newTab);
+                }
             })
             .catch(function (error) {
                 console.log(`Error: ${error}`)
@@ -135,12 +152,17 @@ function getAuthToken(callback) {
                 if (!response.valid) {
                     chrome.identity.launchWebAuthFlow(
                         {'url': 'https://daily-habbit-tracker.herokuapp.com/accounts/extension-authentication/?id=' + chrome.runtime.id, 'interactive': true},
-                        function(redirect_url) { 
-                            const newToken = redirect_url.split('=')[1]
-                            chrome.storage.local.set({'token': newToken}, function() {
-                                console.log(`Token is set to: ${newToken} and saved to chrome storage.`);
-                                callback(newToken);
-                            }); 
+                        function(redirect_url) {
+                            if (redirect_url.includes("=")) { 
+                                const newToken = redirect_url.split('=')[1]
+                                chrome.storage.local.set({'token': newToken}, function() {
+                                    console.log(`Token is set to: ${newToken} and saved to chrome storage.`);
+                                    callback(newToken);
+                                }); 
+                            }
+                            else {
+                                console.log("ERROR: failed to get authentication token.");
+                            }
                         });
                 }
                 else {
@@ -222,33 +244,13 @@ function saveDataLocally() {
     });
 }
 
-function sendSavedData() {
+function sendSavedData(newTab) {
     chrome.storage.local.get(["tab", "startTime", "endTime", "date"], function (result) {
-        getAuthToken(function(authToken) {
-            data = {
-                'token': authToken,
-                'url': result.tab.canonicalizedUrl,
-                'start_time': result.startTime,
-                'end_time': result.endTime,
-                'extensions': result.tab.extensions,
-                'day': result.date
-            };
-            console.log(`Will send follwing data to db: ${JSON.stringify(data)}`);
-            fetch("https://daily-habbit-tracker.herokuapp.com/main/activities/", {
-                method: 'POST',
-                body: JSON.stringify(data),
-                headers:{
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(function (res) {
-                console.log(`Status: ${res.statusText}`);
-                setData(null);
-            })
-            .catch(function (error) {
-                console.log(`Error: ${error}`)
-                setData(null);
-            });
-        });
+        if (result && result.tab && result.startTime && result.endTime && result.date) {
+            tab = result.tab;
+            startTime = result.startTime;
+            date = result.date;
+            submitData(newTab, date);
+        }
     });
 }
