@@ -1,6 +1,7 @@
 var tab = null;
 var startTime;
 var date;
+var previousStatus = null;
 
 chrome.windows.getAll(function (windowList) {
     var i = 0;
@@ -27,14 +28,20 @@ chrome.idle.onStateChanged.addListener(function (state) {
         saveDataLocally();
     }
     else if (state == "active") {
-        inactiveTime = null;
         if (tab == null) {
             chrome.tabs.query({active: true, currentWindow: true}, function (result) {
                 if (result.length > 0) {
-                    sendSavedData(result[0]);
+                    if (previousStatus == "locked") {
+                        sendSavedData(result[0]);
+                    }
+                    else {
+                        setData(result[0])
+                    }
                 }
                 else {
-                    sendSavedData(null);
+                    if (previousStatus == "locked") {
+                        sendSavedData(null);
+                    }
                 }
             });
         }
@@ -42,6 +49,8 @@ chrome.idle.onStateChanged.addListener(function (state) {
     else {
         submitData(null);
     }
+    
+    previousStatus = status;
 });
 
 setInterval(checkCurrentTab, 10 * 60 * 1000);
