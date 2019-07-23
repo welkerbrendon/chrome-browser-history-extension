@@ -9,7 +9,8 @@
         "tabs",
         "identity",
         "storage",
-        "idle"
+        "idle",
+        "webNavigation"
     ],
     "background": {
         "scripts": ["background.js"],

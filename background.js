@@ -2,6 +2,16 @@ var tab = null;
 var startTime;
 var date;
 var previousStatus = null;
+var token = null;
+
+getAuthToken(function (result) {
+    if (result) {
+        token = result;
+    }
+    else {
+        setTimeout(getAuthToken, 10 * 1000);
+    }
+});
 
 chrome.windows.getAll(function (windowList) {
     var i = 0;
@@ -15,6 +25,19 @@ chrome.windows.getAll(function (windowList) {
     });
 });
 
+chrome.webNavigation.onCommitted.addListener(function (result) {
+    try {
+        chrome.tabs.get(result.tabId, function(newTab) {
+            if (newTab && newTab.active) {
+                handleNewTab(newTab);
+            }
+        });
+    }
+    catch (err) {
+        console.log(err);
+    }
+});
+
 chrome.tabs.onActivated.addListener(function (activeInfo) {
     chrome.tabs.get(activeInfo.tabId, function(newTab) {
         handleNewTab(newTab);
@@ -24,7 +47,7 @@ chrome.tabs.onActivated.addListener(function (activeInfo) {
 chrome.idle.setDetectionInterval(10 * 60);
 
 chrome.idle.onStateChanged.addListener(function (state) {
-    if (state == "locked") {
+    if (state == "locked" && tab != null) {
         saveDataLocally();
     }
     else if (state == "active") {
@@ -52,8 +75,6 @@ chrome.idle.onStateChanged.addListener(function (state) {
     
     previousStatus = status;
 });
-
-setInterval(checkCurrentTab, 10 * 60 * 1000);
 
 function handleNewTab(newTab) {
     if (newTab != null && newTab.url) {
@@ -87,44 +108,37 @@ function handleNewTab(newTab) {
     }
 }
 
-function submitData(newTab, endTime = null, attempt = 1) {
-    if (tab != null && attempt < 3) {
-        getAuthToken(function(authToken) {
-            var tempDate = new Date();
-            data = {
-                'token': authToken,
-                'url': tab.canonicalizedUrl,
-                'start_time': startTime,
-                'end_time': endTime ? endTime : tempDate.getHours() + ":" + tempDate.getMinutes() + ":" + tempDate.getSeconds(),
-                'extensions': tab.extensions,
-                'day': date
-            };
-            console.log(`Will send follwing data to db: ${JSON.stringify(data)}`);
-            fetch("https://daily-habbit-tracker.herokuapp.com/main/activities/site/", {
-                method: 'POST',
-                body: JSON.stringify(data),
-                headers:{
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(function (res) {
-                console.log(`Status: ${res.statusText}`);
-                if (res.statusText != "Created") {
-                    submitData(newTab, attempt + 1);
-                }
-                else {
-                    setData(newTab);
-                }
-            })
-            .catch(function (error) {
-                console.log(`Error: ${error}`)
-                setData(newTab);
-            });
-        });
-    }
-    else {
+function submitData(newTab, endTime = null) {
+    var tempDate = new Date();
+    data = {
+        'token': token,
+        'url': tab.canonicalizedUrl,
+        'start_time': startTime,
+        'end_time': endTime ? endTime : tempDate.getHours() + ":" + tempDate.getMinutes() + ":" + tempDate.getSeconds(),
+        'extensions': tab.extensions,
+        'day': date
+    };
+    console.log(`Will send follwing data to db: ${JSON.stringify(data)}`);
+    fetch("https://daily-habbit-tracker.herokuapp.com/main/activities/site/", {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers:{
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(function (res) {
+        console.log(`Status: ${res.statusText}`);
+        if (res.statusText != "Created") {
+            submitData(newTab, attempt + 1);
+        }
+        else {
+            setData(newTab);
+        }
+    })
+    .catch(function (error) {
+        console.log(`Error: ${error}`)
         setData(newTab);
-    }
+    });
 }
 
 function canonicalizeUrl(newTab) {
@@ -209,6 +223,7 @@ function setData(newTab) {
         var tempDate = new Date();
         startTime = tempDate.getHours() + ":" + tempDate.getMinutes() + ":" + tempDate.getSeconds();
         date = tempDate.getFullYear() + "-" + (tempDate.getMonth() + 1) + "-" + tempDate.getDate(); 
+        console.log(`new tab = ${JSON.stringify(tab)}, startTime = ${startTime}, and date = ${date}`);
     }
 }
 
@@ -226,16 +241,6 @@ function findNewTab(i) {
             }
         });
     });
-}
-
-function checkCurrentTab() {
-    if (tab != null) {
-        chrome.windows.get(tab.windowId, function (window) {
-            if (window.state == "minimized") {
-                submitData(findNewTab(0));
-            }
-        });
-    }
 }
 
 function saveDataLocally() {
