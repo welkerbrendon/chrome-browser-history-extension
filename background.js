@@ -119,7 +119,7 @@ function submitData(newTab, endTime = null) {
         'day': date
     };
     console.log(`Will send follwing data to db: ${JSON.stringify(data)}`);
-    fetch("https://daily-habbit-tracker.herokuapp.com/main/activities/site/", {
+    fetch("https://welker-habit-tracker.herokuapp.com/main/activities/site/", {
         method: 'POST',
         body: JSON.stringify(data),
         headers:{
@@ -151,10 +151,12 @@ function canonicalizeUrl(newTab) {
 function getAuthToken(callback) {
     chrome.storage.local.get(['token'], function (result) {
         if (!result.token) {
+            console.log("result.token=" + result.token);
             chrome.identity.launchWebAuthFlow(
-                {'url': 'https://daily-habbit-tracker.herokuapp.com/accounts/extension-authentication/?id=' + chrome.runtime.id, 'interactive': true},
+                {'url': 'https://welker-habit-tracker.herokuapp.com/accounts/extension-authentication/?id=' + chrome.runtime.id, 'interactive': true},
                 function(redirect_url) { 
-                    const receivedToken = redirect_url.split('=')[1]
+                    console.log("redirect_url=" + redirect_url);
+                    const receivedToken = redirect_url.split('=')[1];
                     chrome.storage.local.set({'token': receivedToken}, function() {
                         console.log(`Token is set to: ${receivedToken} and saved to chrome storage.`);
                         callback(receivedToken);
@@ -163,7 +165,7 @@ function getAuthToken(callback) {
         }
         else {
             data = {"token": result.token};
-            fetch("https://daily-habbit-tracker.herokuapp.com/accounts/token-authentication/", {
+            fetch("https://welker-habit-tracker.herokuapp.com/accounts/token-authentication/", {
                 method: 'POST',
                 body: JSON.stringify(data),
                 headers:{
@@ -174,7 +176,7 @@ function getAuthToken(callback) {
                 console.log(JSON.stringify(response));
                 if (!response.valid) {
                     chrome.identity.launchWebAuthFlow(
-                        {'url': 'https://daily-habbit-tracker.herokuapp.com/accounts/extension-authentication/?id=' + chrome.runtime.id, 'interactive': true},
+                        {'url': 'https://welker-habit-tracker.herokuapp.com/accounts/extension-authentication/?id=' + chrome.runtime.id, 'interactive': true},
                         function(redirect_url) {
                             if (redirect_url.includes("=")) { 
                                 const newToken = redirect_url.split('=')[1]
@@ -196,7 +198,7 @@ function getAuthToken(callback) {
             .catch(function (error) {
                 console.log(error);
                 chrome.identity.launchWebAuthFlow(
-                    {'url': 'https://daily-habbit-tracker.herokuapp.com/accounts/extension-authentication/?id=' + chrome.runtime.id, 'interactive': true},
+                    {'url': 'https://welker-habit-tracker.herokuapp.com/accounts/extension-authentication/?id=' + chrome.runtime.id, 'interactive': true},
                     function(redirect_url) { 
                         const newToken = redirect_url.split('=')[1]
                         chrome.storage.local.set({'token': newToken}, function() {
